@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:v-bind="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+    <!-- import Vue.js -->
+    <script src="https://unpkg.com/vue@next"></script>
+    <!-- import CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <!-- import JavaScript -->
+    <script src="https://unpkg.com/element-plus"></script>
+    <!-- import Axios -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <title>DES Algorithm</title>
+</head>
+<body>
+<div id="app">
+
+    <el-row justify="center" gutter="20">
+
+        <!--加密卡片-->
+        <el-col :span="12">
+            <div>
+                <el-card class="box-card">
+
+                    <!--卡片标题-->
+                    <template #header>
+                        <div class="card-header">
+                            <el-tooltip
+                                    class="item"
+                                    effect="dark"
+                                    content="上传文件并输入密钥，系统会返回加密好的文件"
+                                    placement="bottom"
+                            >
+                                <el-button>加密</el-button>
+                            </el-tooltip>
+                        </div>
+                    </template>
+
+                    <!-- 上传器 -->
+                    <el-upload
+                            class="upload-demo"
+                            action="http://localhost:8080/upload"
+                            :on-remove="handleRemove"
+                            :on-success="handleSuccess"
+                            :on-exceed="handleExceed"
+                            :file-list="fileList"
+                            list-type="picture"
+                            limit="1"
+                    >
+                        <el-button size="medium" type="success" plain="true" round="true">点击上传文件</el-button>
+                        <template #tip>
+                            <div class="el-upload__tip">
+                                文件大小限制：50MB
+                            </div>
+                        </template>
+                    </el-upload>
+
+                    <!--加密表单-->
+                    <el-form ref="encodeForm" :model="encodeForm" id="encodeForm">
+
+                        <!--密钥输入文本框-->
+                        <el-form-item>
+                            <el-input v-model="encodeForm.key" placeholder="请输入密钥"></el-input>
+                        </el-form-item>
+
+                        <!--明文输入文本框-->
+                        <el-form-item>
+                            <el-input v-model="encodeForm.plainText" placeholder="请输入明文"></el-input>
+                        </el-form-item>
+
+                        <!--密文显示文本框-->
+                        <el-form-item>
+                            <el-input v-model="encodeForm.encipherText" placeholder="这里会显示密文"></el-input>
+                        </el-form-item>
+
+                        <el-row justify="center" gutter="10">
+
+                            <!--加密文本按钮-->
+                            <el-col :span="12">
+                                <div>
+                                    <el-form-item>
+                                        <el-button type="info" @click="encodeText" plain="true" round="true">加密文本
+                                        </el-button>
+                                    </el-form-item>
+                                </div>
+                            </el-col>
+
+                            <!--加密文件按钮-->
+                            <el-col :span="12">
+                                <div>
+                                    <el-form-item>
+                                        <el-button type="info" @click="encodeFile" plain="true" round="true">加密文件
+                                        </el-button>
+                                    </el-form-item>
+                                </div>
+                            </el-col>
+
+                            <!--下载加密文件按钮-->
+                            <el-col :span="12">
+                                <div>
+                                    <el-button @click="encodeDownload" type="plain" plain="true" round="true">
+                                        <el-link type="primary" :underline="false" v-bind:href="encodeForm.fileName"
+                                                 v-bind:download="encodeForm.fileName">
+                                            下载加密后的文件<i class="el-icon-download"></i></el-link>
+                                    </el-button>
+                                </div>
+                            </el-col>
+                        </el-row>
+                    </el-form>
+
+                </el-card>
+
+            </div>
+
+        </el-col>
+
+        <!--解密卡片-->
+        <el-col :span="12">
+            <div>
+                <el-card class="box-card">
+
+                    <!--卡片标题-->
+                    <template #header>
+                        <div class="card-header">
+                            <el-tooltip
+                                    class="item"
+                                    effect="dark"
+                                    content="上传文件并输入密钥，系统会返回解密好的文件"
+                                    placement="bottom"
+                            >
+                                <el-button>解密</el-button>
+                            </el-tooltip>
+                        </div>
+                    </template>
+
+                    <!-- 解密上传器 -->
+                    <el-upload
+                            class="upload-demo"
+                            action="http://localhost:8080/upload"
+                            :on-remove="handleDecodeRemove"
+                            :on-success="handleDecodeSuccess"
+                            :on-exceed="handleDecodeExceed"
+                            :file-list="decodeFileList"
+                            list-type="picture"
+                            limit="1"
+                    >
+                        <el-button size="medium" type="success" plain="true" round="true">点击上传文件</el-button>
+                        <template #tip>
+                            <div class="el-upload__tip">
+                                文件大小限制：50MB
+                            </div>
+                        </template>
+                    </el-upload>
+
+                    <!--解密表单-->
+                    <el-form ref="decodeForm" :model="decodeForm" id="decodeForm">
+
+                        <!--密钥输入文本框-->
+                        <el-form-item>
+                            <el-input v-model="decodeForm.key" placeholder="请输入密钥"></el-input>
+                        </el-form-item>
+
+                        <!--密文输入文本框-->
+                        <el-form-item>
+                            <el-input v-model="decodeForm.encipherText" placeholder="请输入密文"></el-input>
+                        </el-form-item>
+
+                        <!--明文显示文本框-->
+                        <el-form-item>
+                            <el-input v-model="decodeForm.plainText" placeholder="这里会显示明文"></el-input>
+                        </el-form-item>
+
+                        <el-row justify="center" gutter="10">
+
+                            <!--解密文本按钮-->
+                            <el-col :span="12">
+                                <div>
+                                    <el-form-item>
+                                        <el-button type="info" @click="decodeText" plain="true" round="true">解密文本
+                                        </el-button>
+                                    </el-form-item>
+                                </div>
+                            </el-col>
+
+                            <!--解密文件按钮-->
+                            <el-col :span="12">
+                                <div>
+                                    <el-form-item>
+                                        <el-button type="info" @click="decodeFile" plain="true" round="true">解密文件
+                                        </el-button>
+                                    </el-form-item>
+                                </div>
+                            </el-col>
+
+                            <!--下载解密文件按钮-->
+                            <el-col :span="12">
+                                <div>
+                                    <el-button @click="decodeDownload" type="plain" plain="true" round="true">
+                                        <el-link type="primary" :underline="false" v-bind:href="decodeForm.fileName"
+                                                 v-bind:download="decodeForm.fileName">
+                                            下载解密后的文件<i class="el-icon-download"></i></el-link>
+                                    </el-button>
+                                </div>
+                            </el-col>
+                        </el-row>
+                    </el-form>
+
+
+                </el-card>
+            </div>
+        </el-col>
+    </el-row>
+
+</div>
+<script>
+    const App = {
+        data() {
+            return {
+                // 加密表单
+                encodeForm: {
+                    key: '',
+                    fileName: '',
+                    plainText: '',
+                    encipherText: ''
+                },
+
+                // 解密表单
+                decodeForm: {
+                    key: '',
+                    fileName: '',
+                    plainText: '',
+                    encipherText: ''
+                },
+
+                // 加密文件列表
+                fileList: [],
+
+                // 解密文件列表
+                decodeFileList: [],
+            }
+        },
+        methods: {
+
+            // 加密文件方法
+            encodeFile() {
+                if (this.encodeForm.fileName === '') {
+                    return this.$message.warning('未上传文件！')
+                }
+                if (this.encodeForm.key === '') {
+                    return this.$message.warning('未输入密钥！')
+                }
+                this.$refs.encodeForm.validate(async valid => {
+                    if (!valid) {
+                        return this.$message.error('加密文件失败!')
+                    }
+                    const {data: res} = await axios.post('http://localhost:8080/encodeFile', this.encodeForm)
+                    this.$message.success('文件已加密')
+                    this.encodeForm.fileName = res
+                })
+            },
+
+            // 解密文件方法
+            decodeFile() {
+                if (this.decodeForm.fileName === '') {
+                    return this.$message.warning('未上传文件！')
+                }
+                if (this.decodeForm.key === '') {
+                    return this.$message.warning('未输入密钥！')
+                }
+                this.$refs.decodeForm.validate(async valid => {
+                    if (!valid) {
+                        return this.$message.error('解密文件失败!')
+                    }
+                    const {data: res} = await axios.post('http://localhost:8080/decodeFile', this.decodeForm)
+                    this.$message.success('文件已解密')
+                    this.decodeForm.fileName = res
+                })
+            },
+
+            // 加密文本方法
+            encodeText() {
+                if (this.encodeForm.key === '') {
+                    return this.$message.warning('未输入密钥！')
+                }
+                if (this.encodeForm.plainText === '') {
+                    return this.$message.warning('未输入明文！')
+                }
+                this.$refs.encodeForm.validate(async valid => {
+                    if (!valid) {
+                        return this.$message.error('加密文本失败!')
+                    }
+                    const {data: res} = await axios.post('http://localhost:8080/encodeText', this.encodeForm)
+                    console.log(res)
+                    this.encodeForm.encipherText = res
+                })
+            },
+
+            // 解密文本方法
+            decodeText() {
+                if (this.decodeForm.key === '') {
+                    return this.$message.warning('未输入密钥！')
+                }
+                if (this.decodeForm.encipherText === '') {
+                    return this.$message.warning('未输入密文！')
+                }
+                this.$refs.decodeForm.validate(async valid => {
+                    if (!valid) {
+                        return this.$message.error('解密文本失败!')
+                    }
+                    const {data: res} = await axios.post('http://localhost:8080/decodeText', this.decodeForm)
+                    this.decodeForm.plainText = res
+                    if (res === '') {
+                        this.$message.error('密钥错误！')
+                    } else {
+                        this.$message.success('密钥正确！')
+                    }
+
+                })
+            },
+
+            // 删除上传的加密文件
+            handleRemove(file, fileList) {
+                console.log(file, fileList)
+                this.$message(file.name + ' 已被删除!');
+                this.encodeForm.fileName = ''
+            },
+
+            // 删除上传的解密文件
+            handleDecodeRemove(file, fileList) {
+                console.log(file, fileList)
+                this.$message(file.name + ' 已被删除!');
+                this.decodeForm.fileName = ''
+            },
+
+            // 成功上传加密文件
+            handleSuccess(response, file, fileList) {
+                this.encodeForm.fileName = file.name
+            },
+
+            // 成功上传解密文件
+            handleDecodeSuccess(response, file, fileList) {
+                this.decodeForm.fileName = file.name
+            },
+
+            // 当上传的加密文件超过限制
+            handleExceed(files, fileList) {
+                this.$message.warning('只能上传一个文件!')
+            },
+
+            // 当上传的解密文件超过限制
+            handleDecodeExceed(files, fileList) {
+                this.$message.warning('只能上传一个文件!')
+            },
+
+            // 点击下载加密文件
+            encodeDownload() {
+                if (this.encodeForm.fileName === '') {
+                    this.$message.warning('请先点击加密文件按钮！')
+                }
+            },
+
+            // 点击下载解密文件
+            decodeDownload() {
+                if (this.decodeForm.fileName === '') {
+                    this.$message.warning('请先点击解密文件按钮！')
+                }
+            }
+        }
+    };
+    const app = Vue.createApp(App);
+    app.use(ElementPlus);
+    app.mount("#app");
+</script>
+</body>
+
+<style>
+
+    div {
+        text-align: center;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .item {
+        margin-bottom: 18px;
+    }
+
+    .box-card {
+        width: auto;
+    }
+
+    .row-bg {
+        padding: 10px 0;
+        background-color: #f9fafc;
+    }
+
+    #encodeForm {
+        margin-top: 20px;
+    }
+
+    #decodeForm {
+        margin-top: 20px;
+    }
+
+</style>
+</html>
